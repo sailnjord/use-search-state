@@ -1,2 +1,3 @@
-tsconfig.json
+.prettierrc.yaml
 src
+tsconfig.json
