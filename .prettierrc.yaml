@@ -1,0 +1,6 @@
+# Options: https://prettier.io/docs/en/options.html
+
+printWidth: 120
+trailingComma: es5
+
+arrowParens: avoid
