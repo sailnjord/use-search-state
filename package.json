@@ -5,6 +5,10 @@
   "types": "dist/index.d.ts",
   "author": "Jonas Witt",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sailnjord/use-search-state"
+  },
   "scripts": {
     "build": "tsc"
   },
