@@ -21,22 +21,23 @@ const useSearchState = <T extends string | number | symbol>(
   onSearchChanged: (search: SearchType<T>) => void,
   serializeEmptyValues?: boolean
 ) => {
-  const search = typeof window !== "undefined" ? window.location.search : undefined;
+  const currentSearch = typeof window !== "undefined" ? window.location.search || "?" : undefined;
   const lastPushedSearch = useRef<string>();
   const [initialParsed, setInitialParsed] = useState(false);
+  const initialPushed = useRef(false);
 
   // Parse location search to local state
   const onSearchStateChangedRef = useRef(onSearchChanged);
   onSearchStateChangedRef.current = onSearchChanged;
   useEffect(() => {
-    if ((search === "" ? "?" : search) === lastPushedSearch.current) {
+    if (currentSearch === lastPushedSearch.current) {
       return;
     }
 
-    const paramsRecord = searchParamsToRecord(new URLSearchParams(search));
+    const paramsRecord = searchParamsToRecord(new URLSearchParams(currentSearch));
     onSearchStateChangedRef.current(paramsRecord);
     setInitialParsed(true);
-  }, [lastPushedSearch, search, setInitialParsed]);
+  }, [lastPushedSearch, currentSearch, setInitialParsed]);
 
   // Update local state on browser navigation
   useEffect(() => {
@@ -61,19 +62,23 @@ const useSearchState = <T extends string | number | symbol>(
         .filter(([key, value]) => serializeEmptyValues || value != null)
         .map(([key, value]) => [key, value != null ? value.toString() : ""])
     );
+    const newSearch = `?${new URLSearchParams(newSearchParams).toString()}`;
 
-    const locSearch = `?${new URLSearchParams(newSearchParams).toString()}`;
-    if (locSearch === lastPushedSearch.current) {
+    if (newSearch === lastPushedSearch.current) {
       return;
     }
-    lastPushedSearch.current = locSearch;
 
-    if (search === "") {
-      window.history.replaceState(state, "", locSearch);
-    } else if (locSearch !== search || JSON.stringify(state) !== JSON.stringify(window.history.state)) {
-      window.history.pushState(state, "", locSearch);
+    const url = new URL(window.location.href);
+    url.search = newSearch;
+    if (!initialPushed.current) {
+      window.history.replaceState(state, "", url.toString());
+      initialPushed.current = true;
+      lastPushedSearch.current = newSearch;
+    } else if (newSearch !== currentSearch || JSON.stringify(state) !== JSON.stringify(window.history.state)) {
+      window.history.pushState(state, "", url.toString());
+      lastPushedSearch.current = newSearch;
     }
-  }, [state, initialParsed, serializeEmptyValues, search]);
+  }, [state, initialParsed, initialPushed, serializeEmptyValues, currentSearch]);
 };
 
 export default useSearchState;
