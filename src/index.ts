@@ -47,7 +47,7 @@ const useSearchState = <T extends string | number | symbol>(
     };
     window.addEventListener("popstate", callback);
     return () => {
-      window.addEventListener("popstate", callback);
+      window.removeEventListener("popstate", callback);
     };
   }, []);
 
