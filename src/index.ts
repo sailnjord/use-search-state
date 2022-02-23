@@ -16,6 +16,11 @@ type SearchType<T extends string | number | symbol> = {
   [k in T]?: string;
 };
 
+// Insert the state provided to this hook into
+// history.state under this custom sub-key to
+// retain what other put in history.state
+const HISTORY_STATE_KEY = "__sailnjord__use-search-state";
+
 const useSearchState = <T extends string | number | symbol>(
   state: StateType<T>,
   onSearchChanged: (search: SearchType<T>) => void,
@@ -42,7 +47,7 @@ const useSearchState = <T extends string | number | symbol>(
   // Update local state on browser navigation
   useEffect(() => {
     const callback = (ev: PopStateEvent) => {
-      onSearchStateChangedRef.current(ev.state);
+      onSearchStateChangedRef.current(ev.state?.[HISTORY_STATE_KEY] || {});
       lastPushedSearch.current = undefined;
     };
     window.addEventListener("popstate", callback);
@@ -70,12 +75,20 @@ const useSearchState = <T extends string | number | symbol>(
 
     const url = new URL(window.location.href);
     url.search = newSearch;
+
+    const newState = {
+      ...window.history.state,
+      [HISTORY_STATE_KEY]: state,
+    };
     if (!initialPushed.current) {
-      window.history.replaceState(state, "", url.toString());
+      window.history.replaceState(newState, "", url.toString());
       initialPushed.current = true;
       lastPushedSearch.current = newSearch;
-    } else if (newSearch !== currentSearch || JSON.stringify(state) !== JSON.stringify(window.history.state)) {
-      window.history.pushState(state, "", url.toString());
+    } else if (
+      newSearch !== currentSearch ||
+      JSON.stringify(state) !== JSON.stringify(window.history.state?.[HISTORY_STATE_KEY] || {})
+    ) {
+      window.history.pushState(newState, "", url.toString());
       lastPushedSearch.current = newSearch;
     }
   }, [state, initialParsed, initialPushed, serializeEmptyValues, currentSearch]);
