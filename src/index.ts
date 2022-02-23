@@ -24,8 +24,15 @@ const HISTORY_STATE_KEY = "__sailnjord__use-search-state";
 const useSearchState = <T extends string | number | symbol>(
   state: StateType<T>,
   onSearchChanged: (search: SearchType<T>) => void,
-  serializeEmptyValues?: boolean
+  options?: {
+    serializeEmptyValues?: boolean;
+    pushUpdatedStateToHistory?: boolean;
+  }
 ) => {
+  const serializeEmptyValues = options?.serializeEmptyValues != null ? options.serializeEmptyValues : false;
+  const pushUpdatedStateToHistory =
+    options?.pushUpdatedStateToHistory != null ? options.pushUpdatedStateToHistory : true;
+
   const currentSearch = typeof window !== "undefined" ? window.location.search || "?" : undefined;
   const lastPushedSearch = useRef<string>();
   const [initialParsed, setInitialParsed] = useState(false);
@@ -80,7 +87,9 @@ const useSearchState = <T extends string | number | symbol>(
       ...window.history.state,
       [HISTORY_STATE_KEY]: state,
     };
-    if (!initialPushed.current) {
+
+    const isInitialPush = !initialPushed.current && currentSearch === "?";
+    if (isInitialPush || !pushUpdatedStateToHistory) {
       window.history.replaceState(newState, "", url.toString());
       initialPushed.current = true;
       lastPushedSearch.current = newSearch;
