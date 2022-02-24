@@ -128,7 +128,7 @@ const useSearchState = <T extends string | number | symbol>(
       window.history.pushState(newState, "", url.toString());
       lastPushedSearch.current = newSearch;
     }
-  }, [state, initialParsed, initialPushed, serializeEmptyValues, currentSearch]);
+  }, [JSON.stringify(state), initialParsed, initialPushed, serializeEmptyValues]);
 };
 
 export default useSearchState;
