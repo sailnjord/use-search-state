@@ -30,8 +30,6 @@ useSearchState(
     // For example, copy to local state:
     // setFoo(foo)
     // setBar(bar)
-  },
-  // Do not serialize empty values (e.g. ?foo=)
-  false
+  }
 );
 ```

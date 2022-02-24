@@ -25,7 +25,16 @@ const useSearchState = <T extends string | number | symbol>(
   state: StateType<T>,
   onSearchChanged: (search: SearchType<T>) => void,
   options?: {
+    /**
+     * If true, the keys of empty (falsy) state values will serialized to the
+     * location search ("?key="); if false, these keys will be skipped in serialization
+     * (default: false)
+     */
     serializeEmptyValues?: boolean;
+    /**
+     * If true, successive state changes create new entries in the history stack (`pushState()`),
+     * otherwise only `replaceState()` is called (default: true)
+     */
     pushUpdatedStateToHistory?: boolean;
   }
 ) => {
