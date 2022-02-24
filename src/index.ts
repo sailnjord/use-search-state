@@ -36,11 +36,18 @@ const useSearchState = <T extends string | number | symbol>(
      * otherwise only `replaceState()` is called (default: true)
      */
     pushUpdatedStateToHistory?: boolean;
+    /**
+     * If true, subsequent changes to the location (search) after mounting this hook
+     * will trigger `onSearchChanged()` calls (default: false)
+     */
+    observeLocationSearchChanges?: boolean;
   }
 ) => {
   const serializeEmptyValues = options?.serializeEmptyValues != null ? options.serializeEmptyValues : false;
   const pushUpdatedStateToHistory =
     options?.pushUpdatedStateToHistory != null ? options.pushUpdatedStateToHistory : true;
+  const observeLocationSearchChanges =
+    options?.observeLocationSearchChanges != null ? options.observeLocationSearchChanges : false;
 
   const currentSearch = typeof window !== "undefined" ? window.location.search || "?" : undefined;
   const lastPushedSearch = useRef<string>();
@@ -51,14 +58,26 @@ const useSearchState = <T extends string | number | symbol>(
   const onSearchStateChangedRef = useRef(onSearchChanged);
   onSearchStateChangedRef.current = onSearchChanged;
   useEffect(() => {
-    if (currentSearch === lastPushedSearch.current) {
-      return;
+    if (observeLocationSearchChanges) {
+      if (currentSearch === lastPushedSearch.current) {
+        return;
+      }
+    } else {
+      if (initialParsed) {
+        return;
+      }
     }
 
     const paramsRecord = searchParamsToRecord(new URLSearchParams(currentSearch));
     onSearchStateChangedRef.current(paramsRecord);
     setInitialParsed(true);
-  }, [lastPushedSearch, currentSearch, setInitialParsed]);
+  }, [
+    observeLocationSearchChanges,
+    lastPushedSearch,
+    ...(observeLocationSearchChanges ? [currentSearch] : []),
+    initialParsed,
+    setInitialParsed,
+  ]);
 
   // Update local state on browser navigation
   useEffect(() => {
@@ -80,7 +99,7 @@ const useSearchState = <T extends string | number | symbol>(
 
     const newSearchParams = Object.fromEntries(
       Object.entries<StateValueType>(state)
-        .filter(([key, value]) => serializeEmptyValues || value != null)
+        .filter(([key, value]) => !!serializeEmptyValues || value != null)
         .map(([key, value]) => [key, value != null ? value.toString() : ""])
     );
     const newSearch = `?${new URLSearchParams(newSearchParams).toString()}`;
