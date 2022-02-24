@@ -41,6 +41,10 @@ const useSearchState = <T extends string | number | symbol>(
      * will trigger `onSearchChanged()` calls (default: false)
      */
     observeLocationSearchChanges?: boolean;
+    /**
+     * Putputs debug-level information to the console (default: false)
+     */
+    debug?: boolean;
   }
 ) => {
   const serializeEmptyValues = options?.serializeEmptyValues != null ? options.serializeEmptyValues : false;
@@ -48,6 +52,7 @@ const useSearchState = <T extends string | number | symbol>(
     options?.pushUpdatedStateToHistory != null ? options.pushUpdatedStateToHistory : true;
   const observeLocationSearchChanges =
     options?.observeLocationSearchChanges != null ? options.observeLocationSearchChanges : false;
+  const debug = options?.debug != null ? options.debug : false;
 
   const currentSearch = typeof window !== "undefined" ? window.location.search || "?" : undefined;
   const lastPushedSearch = useRef<string>();
@@ -69,6 +74,9 @@ const useSearchState = <T extends string | number | symbol>(
     }
 
     const paramsRecord = searchParamsToRecord(new URLSearchParams(currentSearch));
+    if (debug) {
+      console.debug("parsed state from location search", paramsRecord);
+    }
     onSearchStateChangedRef.current(paramsRecord);
     setInitialParsed(true);
   }, [
@@ -77,11 +85,15 @@ const useSearchState = <T extends string | number | symbol>(
     ...(observeLocationSearchChanges ? [currentSearch] : []),
     initialParsed,
     setInitialParsed,
+    debug,
   ]);
 
   // Update local state on browser navigation
   useEffect(() => {
     const callback = (ev: PopStateEvent) => {
+      if (debug) {
+        console.debug("popState", ev.state?.[HISTORY_STATE_KEY]);
+      }
       onSearchStateChangedRef.current(ev.state?.[HISTORY_STATE_KEY] || {});
       lastPushedSearch.current = undefined;
     };
@@ -89,7 +101,7 @@ const useSearchState = <T extends string | number | symbol>(
     return () => {
       window.removeEventListener("popstate", callback);
     };
-  }, []);
+  }, [debug]);
 
   // Update location search from local state
   useEffect(() => {
@@ -103,6 +115,17 @@ const useSearchState = <T extends string | number | symbol>(
         .map(([key, value]) => [key, value != null ? value.toString() : ""])
     );
     const newSearch = `?${new URLSearchParams(newSearchParams).toString()}`;
+
+    if (debug) {
+      console.debug("state changed", {
+        state,
+        newSearch,
+        lastPushedSearch: lastPushedSearch.current,
+        isInitialPush: !initialPushed.current && currentSearch === "?",
+        currentSearch,
+        stateEqual: JSON.stringify(state) === JSON.stringify(window.history.state?.[HISTORY_STATE_KEY] || {}),
+      });
+    }
 
     if (newSearch === lastPushedSearch.current) {
       return;
@@ -118,6 +141,9 @@ const useSearchState = <T extends string | number | symbol>(
 
     const isInitialPush = !initialPushed.current && currentSearch === "?";
     if (isInitialPush || !pushUpdatedStateToHistory) {
+      if (debug) {
+        console.debug("replaceState", state, url.search);
+      }
       window.history.replaceState(newState, "", url.toString());
       initialPushed.current = true;
       lastPushedSearch.current = newSearch;
@@ -125,6 +151,9 @@ const useSearchState = <T extends string | number | symbol>(
       newSearch !== currentSearch ||
       JSON.stringify(state) !== JSON.stringify(window.history.state?.[HISTORY_STATE_KEY] || {})
     ) {
+      if (debug) {
+        console.debug("pushState", state, url.search);
+      }
       window.history.pushState(newState, "", url.toString());
       lastPushedSearch.current = newSearch;
     }
